@@ -10,6 +10,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import { supabase } from '../../lib/supabase';
+import NaverBookSearchPanel from './naver-book-search-panel';
 
 /**
  * ApprovePostDialog 컴포넌트
@@ -92,6 +93,17 @@ function ApprovePostDialog({ isOpen, onClose, request, categories, adminId, onAp
               {errorMessage}
             </Alert>
           )}
+          <NaverBookSearchPanel
+            initialQuery={request?.book_title ?? ''}
+            onSelect={(book) => {
+              setTitle(book.title);
+              setAuthor(book.author);
+              setPublisher(book.publisher);
+              setPrice(book.price);
+              setCoverImage(book.coverImage);
+              setSummary(book.summary);
+            }}
+          />
           <Stack spacing={2}>
             <TextField label="제목" value={title} onChange={(event) => setTitle(event.target.value)} required fullWidth />
             <TextField label="저자" value={author} onChange={(event) => setAuthor(event.target.value)} fullWidth />
