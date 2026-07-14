@@ -29,6 +29,7 @@ function SignupPage() {
   const [emailCheckMessage, setEmailCheckMessage] = useState('');
   const [isEmailAvailable, setIsEmailAvailable] = useState(false);
   const [signedUpUser, setSignedUpUser] = useState(null);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
   const [nicknameCheckMessage, setNicknameCheckMessage] = useState('');
   const [isNicknameAvailable, setIsNicknameAvailable] = useState(false);
@@ -59,34 +60,42 @@ function SignupPage() {
       setEmailCheckMessage('이메일과 6자 이상의 비밀번호를 먼저 입력해주세요.');
       return;
     }
+    if (isCheckingEmail || isSubmitting) return;
 
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: { data: { nickname: nickname.trim() || undefined } },
-    });
+    setIsCheckingEmail(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { nickname: nickname.trim() || undefined } },
+      });
 
-    if (error) {
-      setIsEmailAvailable(false);
-      setEmailCheckMessage('이미 가입된 이메일이거나 사용할 수 없는 이메일입니다.');
-      return;
+      if (error) {
+        setIsEmailAvailable(false);
+        setEmailCheckMessage('이미 가입된 이메일이거나 사용할 수 없는 이메일입니다.');
+        return;
+      }
+
+      if (data.user && data.user.identities?.length === 0) {
+        setIsEmailAvailable(false);
+        setEmailCheckMessage('이미 가입된 이메일입니다.');
+        return;
+      }
+
+      setIsEmailAvailable(true);
+      setSignedUpUser(data.user);
+      setEmailCheckMessage('사용 가능한 이메일입니다.');
+    } finally {
+      setIsCheckingEmail(false);
     }
-
-    if (data.user && data.user.identities?.length === 0) {
-      setIsEmailAvailable(false);
-      setEmailCheckMessage('이미 가입된 이메일입니다.');
-      return;
-    }
-
-    setIsEmailAvailable(true);
-    setSignedUpUser(data.user);
-    setEmailCheckMessage('사용 가능한 이메일입니다.');
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
+
+    if (isCheckingEmail || isSubmitting) return;
 
     if (password !== confirmPassword) {
       setErrorMessage('비밀번호가 일치하지 않습니다.');
@@ -177,7 +186,12 @@ function SignupPage() {
                 }}
                 required
               />
-              <Button variant="outlined" sx={{ whiteSpace: 'nowrap' }} onClick={handleCheckEmail}>
+              <Button
+                variant="outlined"
+                sx={{ whiteSpace: 'nowrap' }}
+                onClick={handleCheckEmail}
+                disabled={isCheckingEmail || isSubmitting}
+              >
                 중복확인
               </Button>
             </Stack>
@@ -227,7 +241,14 @@ function SignupPage() {
               </Typography>
             )}
 
-            <Button fullWidth type="submit" variant="contained" size="large" disabled={isSubmitting} sx={{ mt: 1 }}>
+            <Button
+              fullWidth
+              type="submit"
+              variant="contained"
+              size="large"
+              disabled={isSubmitting || isCheckingEmail}
+              sx={{ mt: 1 }}
+            >
               회원가입
             </Button>
           </Box>
