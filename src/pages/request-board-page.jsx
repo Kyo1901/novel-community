@@ -19,6 +19,7 @@ import { useAuth } from '../hooks/useAuth';
 import { formatDate } from '../utils/format-date';
 import ApprovePostDialog from '../components/request/approve-post-dialog';
 import RejectRequestDialog from '../components/request/reject-request-dialog';
+import BulkBookImportPanel from '../components/request/bulk-book-import-panel';
 
 const STATUS_COLOR = {
   대기중: 'warning',
@@ -95,6 +96,8 @@ function RequestBoardPage() {
         <Typography sx={{ fontSize: { xs: '1.2rem', md: '1.4rem' }, fontWeight: 800, mb: 3 }}>
           신청 게시판
         </Typography>
+
+        {isAdmin && <BulkBookImportPanel categories={categories} adminId={user?.id} />}
 
         <Paper sx={{ p: { xs: 2, md: 3 }, mb: { xs: 3, md: 4 } }}>
           {user ? (
