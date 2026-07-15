@@ -26,11 +26,6 @@ function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [nickname, setNickname] = useState('');
 
-  const [emailCheckMessage, setEmailCheckMessage] = useState('');
-  const [isEmailAvailable, setIsEmailAvailable] = useState(false);
-  const [signedUpUser, setSignedUpUser] = useState(null);
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
-
   const [nicknameCheckMessage, setNicknameCheckMessage] = useState('');
   const [isNicknameAvailable, setIsNicknameAvailable] = useState(false);
 
@@ -54,49 +49,17 @@ function SignupPage() {
     }
   };
 
-  const handleCheckEmail = async () => {
-    setErrorMessage('');
-    if (!email.trim() || !password || password.length < 6) {
-      setEmailCheckMessage('이메일과 6자 이상의 비밀번호를 먼저 입력해주세요.');
-      return;
-    }
-    if (isCheckingEmail || isSubmitting) return;
-
-    setIsCheckingEmail(true);
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: { data: { nickname: nickname.trim() || undefined } },
-      });
-
-      if (error) {
-        setIsEmailAvailable(false);
-        setEmailCheckMessage('이미 가입된 이메일이거나 사용할 수 없는 이메일입니다.');
-        return;
-      }
-
-      if (data.user && data.user.identities?.length === 0) {
-        setIsEmailAvailable(false);
-        setEmailCheckMessage('이미 가입된 이메일입니다.');
-        return;
-      }
-
-      setIsEmailAvailable(true);
-      setSignedUpUser(data.user);
-      setEmailCheckMessage('사용 가능한 이메일입니다.');
-    } finally {
-      setIsCheckingEmail(false);
-    }
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
 
-    if (isCheckingEmail || isSubmitting) return;
+    if (isSubmitting) return;
 
+    if (password.length < 6) {
+      setErrorMessage('비밀번호는 6자 이상이어야 합니다.');
+      return;
+    }
     if (password !== confirmPassword) {
       setErrorMessage('비밀번호가 일치하지 않습니다.');
       return;
@@ -108,20 +71,17 @@ function SignupPage() {
 
     setIsSubmitting(true);
 
-    let user = signedUpUser;
-    if (!isEmailAvailable || !user) {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: { data: { nickname: nickname.trim() } },
-      });
-      if (error || (data.user && data.user.identities?.length === 0)) {
-        setIsSubmitting(false);
-        setErrorMessage('이미 가입된 이메일이거나 회원가입에 실패했습니다.');
-        return;
-      }
-      user = data.user;
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { nickname: nickname.trim() } },
+    });
+    if (error || (data.user && data.user.identities?.length === 0)) {
+      setIsSubmitting(false);
+      setErrorMessage('이미 가입된 이메일이거나 회원가입에 실패했습니다.');
+      return;
     }
+    const user = data.user;
 
     const { data: sessionData } = await supabase.auth.getSession();
 
@@ -173,33 +133,15 @@ function SignupPage() {
           )}
 
           <Box component="form" onSubmit={handleSubmit}>
-            <Stack direction="row" spacing={1} sx={{ mb: 0.5 }}>
-              <TextField
-                fullWidth
-                type="email"
-                label="이메일"
-                value={email}
-                onChange={(event) => {
-                  setEmail(event.target.value);
-                  setIsEmailAvailable(false);
-                  setSignedUpUser(null);
-                }}
-                required
-              />
-              <Button
-                variant="outlined"
-                sx={{ whiteSpace: 'nowrap' }}
-                onClick={handleCheckEmail}
-                disabled={isCheckingEmail || isSubmitting}
-              >
-                중복확인
-              </Button>
-            </Stack>
-            {emailCheckMessage && (
-              <Typography sx={{ fontSize: '0.78rem', color: isEmailAvailable ? 'success.main' : 'error.main', mb: 1.5 }}>
-                {emailCheckMessage}
-              </Typography>
-            )}
+            <TextField
+              fullWidth
+              type="email"
+              label="이메일"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              sx={{ mb: 2 }}
+            />
 
             <TextField
               fullWidth
@@ -246,7 +188,7 @@ function SignupPage() {
               type="submit"
               variant="contained"
               size="large"
-              disabled={isSubmitting || isCheckingEmail}
+              disabled={isSubmitting}
               sx={{ mt: 1 }}
             >
               회원가입
